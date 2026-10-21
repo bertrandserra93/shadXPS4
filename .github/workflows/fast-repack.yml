@@ -1,0 +1,46 @@
+name: Fast Xbox Repack (No Compilation)
+
+on:
+  push:
+    paths:
+      - "uwp/**"
+  workflow_dispatch:
+
+jobs:
+  repack:
+    name: Fast Repack UWP Package
+    runs-on: windows-latest
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download compiled binaries from previous run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run download 39676495619 --name "shadps4-xbox-uwp-1ea88d9dd069313ab61e9f2b1e348d31ab5f2a48" --dir previous_artifact
+
+      - name: Extract shadps4.exe
+        shell: pwsh
+        run: |
+          Expand-Archive -Path "previous_artifact/shadps4-xbox-x64.msix" -DestinationPath "build_extracted"
+          New-Item -ItemType Directory -Force -Path "build" | Out-Null
+          Copy-Item "build_extracted/shadps4.exe" -Destination "build/shadps4.exe"
+          Write-Host "Extracted shadps4.exe successfully!" -ForegroundColor Green
+
+      - name: Repackage MSIX with fixed manifest
+        shell: pwsh
+        run: |
+          .\uwp\package.ps1 -BuildDir build -OutputDir bin/uwp -Config Release
+
+      - name: Upload Fixed Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadps4-xbox-fixed
+          path: |
+            bin/uwp/shadps4-xbox-x64.msix
+            bin/uwp/shadps4-dev.cer
