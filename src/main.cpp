@@ -111,38 +111,32 @@ int main(int argc, char* argv[]) {
     // ---- Capture args after `--` verbatim ----
     app.allow_extras();
 
-    // ---- No-args behavior ----
+    // ---- No-args behavior: default to Big Picture Mode (TV/Console UI) ----
     if (argc == 1) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "shadPS4",
-                                 "This is a CLI application. Please use the '-b' flag for Big "
-                                 "Picture mode, or QTLauncher for a standalone GUI:\n"
-                                 "https://github.com/shadps4-emu/shadps4-qtlauncher/releases",
-                                 nullptr);
-        std::cout << app.help();
-        return -1;
-    }
+        bigPicture = true;
+    } else {
+        try {
+            bool double_dash_found = false;
+            int double_dash_index;
+            for (int i = 0; i < argc; i++) {
+                if (double_dash_found) {
+                    gameArgs.emplace_back(argv[i]);
+                }
+                if (!double_dash_found && std::string(argv[i]) == "--") {
+                    double_dash_found = true;
+                    double_dash_index = i;
+                }
+            }
 
-    try {
-        bool double_dash_found = false;
-        int double_dash_index;
-        for (int i = 0; i < argc; i++) {
+            // If the -- arg is present, only parse args before it
             if (double_dash_found) {
-                gameArgs.emplace_back(argv[i]);
+                app.parse(double_dash_index, argv);
+            } else {
+                app.parse(argc, argv);
             }
-            if (!double_dash_found && std::string(argv[i]) == "--") {
-                double_dash_found = true;
-                double_dash_index = i;
-            }
+        } catch (const CLI::ParseError& e) {
+            return app.exit(e);
         }
-
-        // If the -- arg is present, only parse args before it
-        if (double_dash_found) {
-            app.parse(double_dash_index, argv);
-        } else {
-            app.parse(argc, argv);
-        }
-    } catch (const CLI::ParseError& e) {
-        return app.exit(e);
     }
 
     if (waitPid)

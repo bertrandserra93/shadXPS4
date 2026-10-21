@@ -1,0 +1,67 @@
+# SPDX-FileCopyrightText: 2026 shadPS4 Emulator Project
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+name: Xbox UWP Build
+
+on:
+  push:
+    paths-ignore:
+      - "documents/**"
+      - "**/*.md"
+  pull_request:
+    paths-ignore:
+      - "documents/**"
+      - "**/*.md"
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build-xbox-uwp:
+    name: Build shadPS4 for Xbox (UWP x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Setup CMake and Ninja
+        uses: lukka/get-cmake@latest
+
+      - name: Setup Visual Studio Developer Shell
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: x64
+
+      - name: Configure CMake
+        shell: cmd
+        run: |
+          cmake --fresh -G Ninja -B build ^
+            -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
+            -DCMAKE_C_COMPILER=clang-cl ^
+            -DCMAKE_CXX_COMPILER=clang-cl ^
+            -DENABLE_DISCORD_RPC=OFF ^
+            -DENABLE_UPDATER=OFF ^
+            -DENABLE_TESTS=OFF
+
+      - name: Compile shadPS4
+        shell: cmd
+        run: |
+          cmake --build build --config %BUILD_TYPE% --parallel %NUMBER_OF_PROCESSORS%
+
+      - name: Package MSIX for Xbox Dev Mode
+        shell: pwsh
+        run: |
+          .\uwp\package.ps1 -BuildDir build -OutputDir bin/uwp -Config Release
+
+      - name: Upload Xbox UWP Package Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadps4-xbox-uwp-${{ github.sha }}
+          path: |
+            bin/uwp/shadps4-xbox-x64.msix
+            bin/uwp/shadps4-dev.cer
