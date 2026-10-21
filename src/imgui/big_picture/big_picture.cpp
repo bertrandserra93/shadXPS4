@@ -267,6 +267,17 @@ void GetGameIconInfo(std::vector<IconInfo>& icons) {
         }
     }
 
+#ifdef _WIN32
+    // On Xbox / Windows, automatically scan removable drives (D:\ to G:\) for games
+    for (char drive = 'D'; drive <= 'G'; ++drive) {
+        std::filesystem::path drive_path = std::string(1, drive) + ":\\";
+        std::error_code ec;
+        if (std::filesystem::exists(drive_path, ec)) {
+            scanFolder(icons, drive_path, 0);
+        }
+    }
+#endif
+
     std::sort(icons.begin(), icons.end(), [](const IconInfo& a, const IconInfo& b) {
         return a.title < b.title; // Alphabetical order
     });
