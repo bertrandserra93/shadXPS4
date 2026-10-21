@@ -48,8 +48,8 @@ Get-ChildItem -Path $BuildDir -Filter "*.dll" -Recurse | ForEach-Object {
     Copy-Item $_.FullName -Destination $stagingDir -Force
 }
 
-# 4. Copy Assets and Manifest
-Copy-Item "uwp\Package.appxmanifest" -Destination $stagingDir
+# 4. Copy Assets and Manifest (MakeAppx requires the file to be named AppxManifest.xml)
+Copy-Item "uwp\Package.appxmanifest" -Destination (Join-Path $stagingDir "AppxManifest.xml")
 Copy-Item "uwp\Assets\*" -Destination (Join-Path $stagingDir "Assets") -Recurse
 
 # 5. Pack with MakeAppx
